@@ -1,0 +1,8 @@
+Generic single-database configuration for Alembic.
+
+Run from project root (backend/):
+  alembic upgrade head   # apply all migrations
+  alembic revision -m "message"   # create new migration
+  alembic downgrade -1   # rollback one revision
+
+Database URL is read from .env (DATABASE_URL or app defaults).
