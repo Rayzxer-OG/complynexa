@@ -162,7 +162,7 @@ export function DashboardWithFilters() {
   const handleBulkDownload = useCallback(async () => {
     if (selectedIds.size === 0) return;
     setError(null);
-    for (const id of selectedIds) {
+    for (const id of Array.from(selectedIds)) {
       try {
         const { url } = await getCertificateDownloadUrl(id);
         window.open(url, "_blank", "noopener,noreferrer");
