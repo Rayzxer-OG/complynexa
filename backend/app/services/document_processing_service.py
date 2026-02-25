@@ -47,6 +47,20 @@ def normalize_certificate_name(name: str | None) -> str | None:
     return name.title()
 
 
+def _document_name_fallback(first_cert_name: str | None, first_cert_text: str | None) -> str:
+    """Intelligent fallback for document_name when certificate_name is empty. Never use raw file name."""
+    text = ((first_cert_name or "") + " " + (first_cert_text or "")).lower()
+    if "insurance" in text:
+        return "Insurance Policy Certificate"
+    if "examination of lifting machines" in text or "lifting machine" in text:
+        return "Examination of Lifting Machines"
+    if "pressure vessel" in text:
+        return "Report of Examination of Pressure Vessel"
+    if "power press" in text:
+        return "Examination of Power Press and Safety Devices"
+    return "Compliance Document"
+
+
 def _save_certificate(
     db: Session,
     job_id: UUID,
@@ -268,14 +282,24 @@ def run_processing_pipeline(
                 .order_by(Certificate.sequence_number.asc())
                 .all()
             )
+            # Set document name: 1) first certificate's certificate_name, 2) fallback from content, 3) "Compliance Document". Never use file name.
             if doc:
-                if certs_list:
+                if certs_list and (certs_list[0].certificate_name or "").strip():
+                    # Priority 1: use AI-extracted certificate_name from first certificate
                     first_name = (certs_list[0].certificate_name or "").strip()
                     if len(certs_list) == 1:
-                        doc.document_name = first_name or None
+                        doc.document_name = first_name
                     else:
-                        doc.document_name = (first_name + " Report") if first_name else None
-                if not doc.document_name:
+                        doc.document_name = first_name + " Report"
+                elif certs_list:
+                    # Priority 2: infer from first certificate content when certificate_name is empty
+                    first_cert = certs_list[0]
+                    doc.document_name = _document_name_fallback(
+                        (first_cert.certificate_name or "").strip(),
+                        (first_cert.extracted_text or ""),
+                    )
+                else:
+                    # Priority 3: only when no certificates
                     doc.document_name = "Compliance Document"
 
             db.commit()

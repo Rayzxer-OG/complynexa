@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Inter } from "next/font/google";
 import { AuthNav } from "@/components/AuthNav";
 import "./globals.css";
@@ -6,7 +7,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: "Complyon — AI-powered compliance tracking",
+  title: "Complynexa — AI-powered compliance tracking",
   description: "AI-powered compliance tracking. Automate document expiry detection with AWS Textract OCR and AI extraction.",
   icons: {
     icon: [
@@ -27,14 +28,16 @@ export default function RootLayout({
     <html lang="en" className={inter.variable}>
       <body className="min-h-screen bg-white font-sans text-slate-900 antialiased">
         <header className="sticky top-0 z-50 border-b border-slate-200/80 bg-white/95 shadow-sm backdrop-blur supports-[backdrop-filter]:bg-white/90">
-          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:h-20">
-            <a href="/" className="flex items-center">
-              <img
-                src="/complyon-logo.png"
-                alt="Complyon"
-                className="h-12 w-auto object-contain sm:h-14"
-              />
-            </a>
+          <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-6">
+            <Link href="/" className="shrink-0">
+              <div className="flex cursor-pointer items-center">
+                <img
+src="/complynexa-logo.png"
+                alt="Complynexa"
+                  className="h-20 w-auto object-contain md:h-24 lg:h-28"
+                />
+              </div>
+            </Link>
             <AuthNav />
           </div>
         </header>

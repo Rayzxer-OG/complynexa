@@ -21,7 +21,7 @@ export default function HomePage() {
             AI-powered compliance tracking. Zero missed expiries.
           </h1>
           <p className="mt-6 text-lg text-slate-600 sm:text-xl">
-            Complyon uses AWS Textract OCR and AI extraction to automatically detect document expiries, categorize compliance records, and send reminders before deadlines.
+            Complynexa uses AWS Textract OCR and AI extraction to automatically detect document expiries, categorize compliance records, and send reminders before deadlines.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
@@ -135,7 +135,7 @@ export default function HomePage() {
       <section className="border-t border-slate-200 bg-white px-4 py-20 opacity-0 animate-fade-in [animation-delay:240ms]">
         <div className="mx-auto max-w-3xl">
           <h2 className="text-center text-2xl font-semibold text-slate-900 sm:text-3xl">
-            How Complyon works
+            How Complynexa works
           </h2>
           <ol className="mt-14 flex flex-col gap-10 sm:gap-14">
             <li className="flex gap-5">
@@ -179,7 +179,7 @@ export default function HomePage() {
       <section className="border-t border-slate-200 bg-slate-50/40 px-4 py-20 opacity-0 animate-fade-in [animation-delay:320ms]">
         <div className="mx-auto max-w-3xl text-center">
           <h2 className="text-2xl font-semibold text-slate-900 sm:text-3xl">
-            Manual compliance tracking is risky. Complyon automates it.
+            Manual compliance tracking is risky. Complynexa automates it.
           </h2>
           <ul className="mt-12 flex flex-col gap-4 text-left sm:mx-auto sm:max-w-md">
             <li className="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
@@ -213,7 +213,7 @@ export default function HomePage() {
             Start using AI to manage compliance today
           </h2>
           <p className="mt-4 text-blue-100/90">
-            Join Complyon and automate compliance tracking with AI and AWS-powered OCR.
+            Join Complynexa and automate compliance tracking with AI and AWS-powered OCR.
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
             <Link
@@ -237,7 +237,7 @@ export default function HomePage() {
         <div className="mx-auto max-w-4xl">
           <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-between">
             <div>
-              <p className="font-bold text-white">Complyon</p>
+              <p className="font-bold text-white">Complynexa</p>
               <p className="mt-0.5 text-sm">AI-powered compliance tracking</p>
               <p className="mt-2 text-xs text-slate-400">Powered by AWS Textract and AI</p>
             </div>
@@ -251,7 +251,7 @@ export default function HomePage() {
             </nav>
           </div>
           <p className="mt-8 border-t border-slate-700 pt-8 text-center text-xs text-slate-500">
-            © 2026 Complyon. All rights reserved.
+            © 2026 Complynexa. All rights reserved.
           </p>
         </div>
       </footer>
