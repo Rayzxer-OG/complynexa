@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import {
   getCertificatesGrouped,
@@ -12,6 +13,7 @@ import {
   type GroupedDocument,
 } from "@/lib/api";
 import { PdfViewerModal } from "@/components/PdfViewerModal";
+import { formatDate } from "@/lib/utils";
 
 const FILTERS: { value: CertificateStatusFilter | ""; label: string }[] = [
   { value: "", label: "All" },
@@ -19,16 +21,6 @@ const FILTERS: { value: CertificateStatusFilter | ""; label: string }[] = [
   { value: "Expiring Soon", label: "Expiring Soon" },
   { value: "Expired", label: "Expired" },
 ];
-
-function formatDate(s: string | null): string {
-  if (!s) return "—";
-  try {
-    const d = new Date(s);
-    return d.toLocaleDateString();
-  } catch {
-    return s;
-  }
-}
 
 function StatusBadge({ status }: { status: string }) {
   const statusClass =
@@ -214,8 +206,17 @@ export function DashboardWithFilters() {
       {loading ? (
         <div className="py-8 text-center text-sm text-slate-500">Loading certificates…</div>
       ) : filteredGroupedDocs.length === 0 ? (
-        <div className="py-8 text-center text-sm text-slate-500">
-          No certificates yet. Upload a multi-certificate PDF from the Upload page.
+        <div className="rounded-xl border border-slate-200 bg-slate-50/50 py-12 px-6 text-center">
+          <p className="text-slate-700 font-medium">No certificates yet</p>
+          <p className="mt-1 text-sm text-slate-500">
+            Upload documents from the Compliance Checklist for each requirement.
+          </p>
+          <Link
+            href="/compliance-checklist"
+            className="mt-4 inline-block rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+          >
+            View checklist →
+          </Link>
         </div>
       ) : (
         <div className="space-y-4">

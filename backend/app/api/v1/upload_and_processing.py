@@ -1,10 +1,11 @@
 """Upload document (multi-certificate PDF) and processing status APIs."""
 
 import logging
+from datetime import date
 from pathlib import Path
 from uuid import UUID, uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, status, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, status, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -12,6 +13,7 @@ from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.document import Document
 from app.models.user import User
+from app.models.user_compliance import UserCompliance
 from app.schemas.processing import ProcessingStatusResponse
 from app.services.document_processing_service import run_processing_pipeline
 from app.services.file_conversion_service import convert_to_pdf
@@ -53,12 +55,34 @@ def _validate_upload_filename(filename: str | None) -> None:
         )
 
 
+def _parse_optional_uuid(value: str | None) -> UUID | None:
+    if not value:
+        return None
+    try:
+        return UUID(value)
+    except (ValueError, TypeError):
+        return None
+
+
+def _parse_optional_date(value: str | None) -> date | None:
+    """Parse YYYY-MM-DD string to date for reminder engine."""
+    if not value or not value.strip():
+        return None
+    try:
+        return date.fromisoformat(value.strip())
+    except (ValueError, TypeError):
+        return None
+
+
 def _process_one_document(
     *,
     background_tasks: BackgroundTasks,
     file: UploadFile,
     current_user: User,
     db: Session,
+    compliance_requirement_id: UUID | None = None,
+    unit_id: UUID | None = None,
+    expiry_date: date | None = None,
 ) -> dict:
     """Process a single file: validate, convert, upload to S3, create document, start pipeline. Returns dict with filename, job_id, document_id. Raises HTTPException on failure."""
     _validate_upload_filename(file.filename)
@@ -152,6 +176,10 @@ def _process_one_document(
             detail="Failed to upload to storage",
         ) from e
 
+    # For compliance uploads, do not set expiry_date here; user confirms after OCR.
+    is_compliance_upload = compliance_requirement_id is not None and unit_id is not None
+    doc_expiry = None if is_compliance_upload else expiry_date
+
     doc = Document(
         id=document_id,
         user_id=current_user.id,
@@ -159,9 +187,14 @@ def _process_one_document(
         file_path=str(temp_path),
         s3_url=s3_key,
         extracted_text=None,
+        compliance_requirement_id=compliance_requirement_id,
+        unit_id=unit_id,
+        expiry_date=doc_expiry,
     )
     db.add(doc)
     db.commit()
+
+    # UserCompliance is set to "uploaded" only after user confirms in PATCH (OCR confirmation flow).
 
     background_tasks.add_task(
         run_processing_pipeline,
@@ -185,11 +218,16 @@ def upload_document(
     current_user: User = Depends(get_current_user),
     file: UploadFile | None = File(None),
     files: list[UploadFile] = File(default=[]),
+    compliance_requirement_id: str | None = Form(None),
+    unit_id: str | None = Form(None),
+    expiry_date: str | None = Form(None),
 ) -> dict:
     """
     Upload one or more documents. Each file is converted to PDF if needed, stored in S3,
     and processed independently in the background.
     Accepts either a single "file" (backward compatible) or multiple "files".
+    Optional form fields: compliance_requirement_id, unit_id — when set, document is linked
+    and user_compliance status is updated to "uploaded".
     Returns success and a list of { filename, job_id, document_id } per file (or error per file).
     """
     file_list: list[UploadFile] = list(files) if files else ([file] if file else [])
@@ -198,6 +236,9 @@ def upload_document(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="No file(s) provided. Use 'file' or 'files'.",
         )
+    crid = _parse_optional_uuid(compliance_requirement_id)
+    uid = _parse_optional_uuid(unit_id)
+    exp_date = _parse_optional_date(expiry_date)
 
     results: list[dict] = []
     for f in file_list:
@@ -207,6 +248,9 @@ def upload_document(
                 file=f,
                 current_user=current_user,
                 db=db,
+                compliance_requirement_id=crid,
+                unit_id=uid,
+                expiry_date=exp_date,
             )
             results.append(r)
         except HTTPException:

@@ -29,6 +29,9 @@ openai>=1.12.0,<2.0.0
 # Scheduler (daily reminder job)
 apscheduler>=3.10.0,<4.0.0
 
+# Email (Resend for certificate reminders)
+resend>=2.0.0,<3.0.0
+
 # Auth (bcrypt used directly in app/core/security.py)
 bcrypt>=4.0.0
 python-jose[cryptography]>=3.3.0

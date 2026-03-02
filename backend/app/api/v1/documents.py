@@ -15,11 +15,13 @@ from app.core.config import get_settings
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.document import Document
+from app.models.unit import Unit
 from app.models.user import User
-from app.schemas.document import DocumentResponse, DocumentUpdate
-from app.services.ai_extraction_service import extract_compliance_fields
-from app.services.s3_service import S3ServiceError, generate_presigned_url
-from app.services.textract_service import TextractError, extract_text_from_document
+from app.models.user_compliance import UserCompliance
+from app.schemas.document import DocumentResponse, DocumentUpdate, OcrExtractResponse
+from app.services.ai_extraction_service import extract_compliance_fields, extract_compliance_fields_ocr
+from app.services.s3_service import S3ServiceError, generate_presigned_url, get_object_bytes
+from app.services.textract_service import TextractError, extract_text_from_document, extract_text_from_pdf_bytes
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +193,69 @@ def get_document_download_url(
         ) from e
 
 
+@router.get("/{document_id}/extract-ocr", response_model=OcrExtractResponse)
+def extract_ocr_document(
+    document_id: UUID,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Run OCR and AI extraction on a document; return fields for confirmation form. Requires S3 storage."""
+    doc = db.query(Document).filter(
+        Document.id == document_id,
+        Document.user_id == current_user.id,
+    ).first()
+    if not doc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Document not found",
+        )
+    if not doc.s3_url:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Document has no S3 storage; OCR extraction is not available",
+        )
+    try:
+        pdf_bytes = get_object_bytes(doc.s3_url)
+    except S3ServiceError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Failed to load document for extraction",
+        ) from e
+    try:
+        text = extract_text_from_pdf_bytes(pdf_bytes)
+    except TextractError as e:
+        logger.warning("Textract failed for document %s: %s", document_id, e)
+        return OcrExtractResponse(
+            document_name=None,
+            license_number=None,
+            issuing_authority=None,
+            issue_date=None,
+            expiry_date=None,
+            unit_name=_unit_name_for_document(db, doc),
+            category=None,
+        )
+    fields = extract_compliance_fields_ocr(text)
+    # Prefer unit name extracted from document (license company name); fallback to linked unit's name
+    unit_name = fields.get("unit_name") or _unit_name_for_document(db, doc)
+    return OcrExtractResponse(
+        document_name=fields.get("document_name"),
+        license_number=fields.get("license_number"),
+        issuing_authority=fields.get("issuing_authority"),
+        issue_date=fields.get("issue_date"),
+        expiry_date=fields.get("expiry_date"),
+        unit_name=unit_name,
+        category=fields.get("category"),
+    )
+
+
+def _unit_name_for_document(db: Session, doc: Document) -> str | None:
+    """Return unit_name for document's unit_id, or None."""
+    if not doc.unit_id:
+        return None
+    unit = db.query(Unit).filter(Unit.id == doc.unit_id).first()
+    return unit.unit_name if unit else None
+
+
 @router.get("/{document_id}", response_model=DocumentResponse)
 def get_document(
     document_id: UUID,
@@ -227,11 +292,20 @@ def update_document(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Document not found",
         )
-    data = body.model_dump(exclude_unset=True)
+    data = body.model_dump(exclude_unset=True, by_alias=False)
+    data.pop("unit_name", None)  # Not stored on Document; unit_id is the source of truth
     for key, value in data.items():
         setattr(doc, key, value)
     db.commit()
     db.refresh(doc)
+    # After user confirms OCR data, mark compliance as uploaded so checklist updates.
+    if doc.compliance_requirement_id is not None and doc.unit_id is not None:
+        db.query(UserCompliance).filter(
+            UserCompliance.user_id == current_user.id,
+            UserCompliance.unit_id == doc.unit_id,
+            UserCompliance.compliance_requirement_id == doc.compliance_requirement_id,
+        ).update({UserCompliance.status: "uploaded"}, synchronize_session=False)
+        db.commit()
     return doc
 
 

@@ -2,20 +2,11 @@
 
 import type { CertificateItem } from "@/lib/api";
 import { getCertificateDownloadUrl, getCertificateViewUrl } from "@/lib/api";
+import { formatDate } from "@/lib/utils";
 
 interface CertificateCardProps {
   certificate: CertificateItem;
   onView: (url: string) => void;
-}
-
-function formatDate(s: string | null): string {
-  if (!s) return "—";
-  try {
-    const d = new Date(s);
-    return d.toLocaleDateString();
-  } catch {
-    return s;
-  }
 }
 
 export function CertificateCard({ certificate, onView }: CertificateCardProps) {

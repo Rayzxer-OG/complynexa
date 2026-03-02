@@ -21,6 +21,18 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+    const complianceRequirementId = formData.get("compliance_requirement_id");
+    const unitId = formData.get("unit_id");
+    const expiryDate = formData.get("expiry_date");
+    if (complianceRequirementId && typeof complianceRequirementId === "string") {
+      backendFormData.append("compliance_requirement_id", complianceRequirementId);
+    }
+    if (unitId && typeof unitId === "string") {
+      backendFormData.append("unit_id", unitId);
+    }
+    if (expiryDate && typeof expiryDate === "string") {
+      backendFormData.append("expiry_date", expiryDate);
+    }
 
     const auth = request.headers.get("authorization");
     const headers: HeadersInit = { ...(auth && { Authorization: auth }) };

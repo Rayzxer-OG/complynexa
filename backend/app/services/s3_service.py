@@ -129,6 +129,18 @@ def generate_presigned_url(
     return url
 
 
+def get_object_bytes(s3_key: str) -> bytes:
+    """Download an object from S3 and return its body bytes."""
+    bucket = _get_bucket()
+    try:
+        client = _get_client()
+        resp = client.get_object(Bucket=bucket, Key=s3_key)
+        return resp["Body"].read()
+    except (BotoCoreError, ClientError) as e:
+        logger.exception("S3 get_object failed for key %s", s3_key)
+        raise S3ServiceError(f"Failed to download document from S3: {e}") from e
+
+
 def delete_object(s3_key: str) -> None:
     """Delete an object from S3. Ignores 404 (object may already be gone)."""
     bucket = _get_bucket()

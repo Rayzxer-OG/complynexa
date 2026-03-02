@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { setToken } from "@/lib/auth";
+import { API_BASE } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,14 +17,24 @@ export default function LoginPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch("/api/auth/login", {
+      const url = `${API_BASE}/api/v1/auth/login`;
+      if (typeof window !== "undefined") console.log("[API]", url);
+      const res = await fetch(url, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(data.detail ?? "Login failed");
+        const message =
+          typeof data.detail === "string"
+            ? data.detail
+            : Array.isArray(data.detail) && data.detail.length > 0
+              ? data.detail.map((d: { msg?: string }) => d.msg).filter(Boolean).join(". ") || "Invalid input"
+              : res.status === 502
+                ? "Backend unreachable. Is the API server running (e.g. port 8000)?"
+                : "Login failed";
+        setError(message);
         return;
       }
       if (data.access_token) {
@@ -34,7 +45,7 @@ export default function LoginPage() {
         setError("No token in response");
       }
     } catch {
-      setError("Network error");
+      setError("Network error. Check the backend is running.");
     } finally {
       setLoading(false);
     }

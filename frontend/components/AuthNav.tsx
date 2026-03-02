@@ -28,10 +28,10 @@ export function AuthNav() {
         Dashboard
       </Link>
       <Link
-        href="/upload"
+        href="/compliance-checklist"
         className="text-sm font-medium text-slate-600 hover:text-slate-900"
       >
-        Upload
+        Compliance Checklist
       </Link>
       <Link
         href="/locker"

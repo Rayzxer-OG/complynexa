@@ -12,11 +12,18 @@ export function getStatus(expiryDate: string | null): DocumentStatus | null {
   return "active";
 }
 
-export function formatDate(dateStr: string | null): string {
+/** Format ISO date (YYYY-MM-DD) for display as DD/MM/YYYY. Backend continues to store ISO. */
+export function formatDateDDMMYYYY(dateStr: string | null): string {
   if (!dateStr) return "—";
-  return new Date(dateStr).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "—";
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+/** Format date for UI display (DD/MM/YYYY). Use for expiry and other dates. */
+export function formatDate(dateStr: string | null): string {
+  return formatDateDDMMYYYY(dateStr);
 }

@@ -37,7 +37,7 @@ def main():
     print("1. Register...")
     try:
         user = post("/api/v1/auth/register", {
-            "email": "testauth@example.com",
+            "email": "nishantgpt9@gmail.com",
             "password": "securepass123",
             "full_name": "Test Auth User",
         })
@@ -63,7 +63,7 @@ def main():
     print("2. Login (use same email/password as register)...")
     try:
         token_resp = post("/api/v1/auth/login", {
-            "email": "testauth@example.com",
+            "email": "nishantgpt9@gmail.com",
             "password": "securepass123",
         })
         token = token_resp["access_token"]

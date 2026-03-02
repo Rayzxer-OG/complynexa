@@ -1,16 +1,20 @@
 """Application configuration from environment variables."""
 
 from functools import lru_cache
-from typing import Optional
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# Resolve .env path relative to this file so it works from any CWD (backend/.env)
+_BASE_DIR = Path(__file__).resolve().parent.parent.parent
+_ENV_FILE = _BASE_DIR / ".env"
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(_ENV_FILE) if _ENV_FILE.exists() else ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
@@ -49,6 +53,12 @@ class Settings(BaseSettings):
 
     # OpenAI (for LLM compliance field extraction)
     openai_api_key: str = ""
+
+    # Resend (all reminder emails; sender e.g. Complynexa <notifications@complynexa.com>)
+    # Set in .env: RESEND_API_KEY, FROM_EMAIL, FROM_NAME
+    resend_api_key: str = ""
+    from_email: str = ""  # e.g. notifications@complynexa.com
+    from_name: str = "Complynexa"
 
     # SMTP (for reminder emails)
     smtp_host: str = ""

@@ -13,7 +13,17 @@ from sqlalchemy import engine_from_config, pool
 # Import app config and Base so metadata is available
 from app.core.config import get_settings
 from app.core.database import Base
-from app.models import Document, ReminderLog, User  # noqa: F401 - register models with Base.metadata
+from app.models import (  # noqa: F401 - register models with Base.metadata
+    ComplianceEscalationLog,
+    ComplianceReminder,
+    ComplianceRequirement,
+    Document,
+    ReminderLog,
+    Unit,
+    UnitConditionResponse,
+    User,
+    UserCompliance,
+)
 
 config = context.config
 if config.config_file_name is not None:

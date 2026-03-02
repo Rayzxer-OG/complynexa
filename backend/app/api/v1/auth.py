@@ -9,11 +9,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
+from app.api.v1.industries import normalize_and_validate_industry
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.core.security import create_access_token, hash_password, verify_password
+from app.models.unit import Unit
 from app.models.user import User
-from app.schemas.auth import TokenResponse, UserLogin, UserRegister
+from app.schemas.auth import OnboardingBody, TokenResponse, UserLogin, UserRegister
 from app.schemas.user import UserResponse
 
 logger = logging.getLogger(__name__)
@@ -107,6 +109,65 @@ def register(
         # #endregion
         db.rollback()
         logger.exception("Register failed: %s", traceback.format_exc())
+        return JSONResponse(
+            status_code=500,
+            content={"detail": _format_register_error(e), "type": type(e).__name__},
+        )
+
+
+@router.post("/onboarding", status_code=status.HTTP_201_CREATED)
+def onboarding(body: OnboardingBody, db: Session = Depends(get_db)) -> dict:
+    """Create organization/unit and admin user in one step. Returns organization_id, unit_id, access_token."""
+    try:
+        if db.query(User).filter(User.email == body.user.email).first():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Email already registered",
+            )
+        hashed = hash_password(body.user.password)
+        user = User(
+            email=body.user.email,
+            full_name=body.user.full_name,
+            password_hash=hashed,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        org = body.organization
+        industry = normalize_and_validate_industry(db, org.industry_id or "")
+        unit = Unit(
+            user_id=user.id,
+            organization_name=org.organization_name,
+            unit_name=org.unit_name,
+            address=org.address,
+            state=org.state,
+            industry=industry,
+            business_type=org.business_type_id or "",
+            number_of_employees=org.employees,
+            manufacturing=org.manufacturing,
+            connected_load_kw=org.electrical_load,
+        )
+        db.add(unit)
+        db.commit()
+        db.refresh(unit)
+
+        access_token = create_access_token(user.id)
+        return {
+            "organization_id": str(unit.id),
+            "unit_id": str(unit.id),
+            "access_token": access_token,
+            "user": {
+                "id": str(user.id),
+                "email": user.email,
+                "full_name": user.full_name,
+            },
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        logger.exception("Onboarding failed: %s", traceback.format_exc())
         return JSONResponse(
             status_code=500,
             content={"detail": _format_register_error(e), "type": type(e).__name__},

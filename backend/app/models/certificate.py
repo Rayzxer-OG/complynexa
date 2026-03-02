@@ -29,6 +29,7 @@ class Certificate(Base):
     certificate_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
     issue_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     expiry_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    last_reminder_sent: Mapped[date | None] = mapped_column(Date, nullable=True)
     page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
     sequence_number: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
     source_document_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
